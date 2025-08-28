@@ -1,0 +1,74 @@
+---
+title: "Interest Rates and R&D - Proof of Concept"
+format: 
+  html:
+    embed-resources: true
+editor: visual
+
+author: "David Gonzalez Chavez"
+
+execute:
+  echo: true
+  warning: false
+  message: false
+  freeze: auto
+---
+
+```{r}
+#| echo: false
+#| message: false
+#| warning: false
+
+library(tidyverse)
+
+theme_set(theme_light())
+
+```
+
+# Data
+
+The data for this comes from the OECD. It includes R&D expenditures by country (as a percentage of country GDP) and the interest rates of each country by year.
+
+```{r}
+
+OECD_RD_All <- read_csv("OECD_RD_All.csv")
+
+OECD_RD_Inf <- read_csv("OECD_RD_InformationOnly.csv")
+
+OECD_InterestRates <- read_csv("OECD_InterestRates.csv")
+
+OECD_InterestRates <- OECD_InterestRates |> 
+  select(REF_AREA, TIME_PERIOD, OBS_VALUE) |> 
+  rename(year = TIME_PERIOD, country_iso = REF_AREA, interbank_rate = OBS_VALUE)
+
+OECD_RD_Inf <- OECD_RD_Inf |> 
+  select(ISO, Year, Value) |> 
+  rename(year = Year, country_iso = ISO, information_rd_percentGDP = Value)
+
+```
+
+# Analysis
+
+The following analysis tests the hypothesis that a country's interest rate has an inverse relationship with spending on R&D within the information sector (as a percentage of GDP).
+
+```{r}
+
+infoRD_intRate <- left_join(OECD_RD_Inf, OECD_InterestRates, by = c("year", "country_iso")) |> 
+  drop_na() 
+
+model = lm(formula = information_rd_percentGDP ~  interbank_rate, data = infoRD_intRate)
+
+summary(model)
+
+ggplot(data = infoRD_intRate,
+aes(x = interbank_rate, y = information_rd_percentGDP)) +
+  geom_point() +
+  geom_smooth(method="lm", formula = y ~ x)
+
+```
+
+This analysis suggests that increasing in interest rates do decrease spending on R&D. A 1-percentage point increase in interbank rates results in a 0.015% drop in R&D spending as a percent of GDP. Relative to the mean spending on R&D, this is around a 4% decrease.
+
+This finding is consisting with the existing literature; for instance, "For every 1 percentage point rise in interest rates, Ma and Zimmermann calculate, R&D spending fell by between 1 and 3 percent and VC investment fell by about 25 percent one to three years after the hike. Similarly, within four years of an interest-rate increase, patent filings and innovation each declined by 9 percent." per https://www.chicagobooth.edu/review/high-interest-rates-harm-innovation
+
+The lagged impact of interest rate changes has been studied, but no connection in the literature exists between interest rates and organizational imprinting. This is the foundation for what I hope to analyze.
