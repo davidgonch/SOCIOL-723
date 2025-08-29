@@ -72,3 +72,37 @@ This analysis suggests that increasing in interest rates do decrease spending on
 This finding is consisting with the existing literature; for instance, "For every 1 percentage point rise in interest rates, Ma and Zimmermann calculate, R&D spending fell by between 1 and 3 percent and VC investment fell by about 25 percent one to three years after the hike. Similarly, within four years of an interest-rate increase, patent filings and innovation each declined by 9 percent." per https://www.chicagobooth.edu/review/high-interest-rates-harm-innovation
 
 The lagged impact of interest rate changes has been studied, but no connection in the literature exists between interest rates and organizational imprinting. This is the foundation for what I hope to analyze.
+
+# Future Datasources
+
+## US-Specific
+
+### National Center for Science and Engineering Statistics
+
+The National Center for Science and Engineering Statistics has lots of datasets with survey data about company R&D spend, from businesses with only 1 to 9 employees to large businesses. 
+
+This includes the Business Enterprise Research and Development Survey (BERD) and the Annual Business Survey (ABS)
+
+https://ncses.nsf.gov/browse-library?dataCollection=Business%20and%20Industry%20R%26D
+
+## Japan-Specific
+
+### Nikkei Dataset
+
+Nikkei contains several datasets that coul dbe useful.
+
+https://nkbb.nikkei.co.jp/en/dataset/corporate-fundamentals/#corporate-financial-statements
+
+## Multi-National
+
+### Bloomberg
+
+Bloomberg has lots of datasets containing comprehensive financial information for companies. One dataset, the Fundamentals database, includes 85k public, private, delisted, active, and inactive companies across more than 115 countries. This would be valuable for getting information like R&D spending or more granular data like spending on administrative roles.
+
+https://data.bloomberglp.com/professional/sites/10/189913_CDS_REF_Fundamentals_SFCT_DIG.pdf
+
+### OECD
+
+The OECD has great data on yearly interest rates (short-term, long-term, and interbank) by country.
+
+https://www.oecd.org/en/data/datasets.html
