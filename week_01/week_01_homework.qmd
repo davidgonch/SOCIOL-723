@@ -1,0 +1,201 @@
+---
+title: "Interest Rates and R&D - Proof of Concept"
+format: 
+  html:
+    embed-resources: true
+editor: visual
+
+author: "David Gonzalez Chavez"
+
+execute:
+  echo: true
+  warning: false
+  message: false
+  freeze: auto
+---
+
+```{r}
+#| echo: false
+#| message: false
+#| warning: false
+
+library(tidyverse)
+
+theme_set(theme_light())
+
+set.seed(1)
+
+options(scipen=7)
+
+```
+
+
+# Problem Set
+
+Probability review. The table presents the joint distribution for two variables: country of
+origin and whether a runner ended up in the top 10. Compute the following (don’t just show
+the final result, show how you arrived at it):
+
+```{r}
+top_usa = 3
+ntop_usa = 38000
+top_ken = 4
+ntop_ken = 9
+top_oth = 3
+ntop_oth = 18000
+
+usa_total = top_usa + ntop_usa
+ken_total = top_ken + ntop_ken
+oth_total = top_oth + ntop_oth
+
+total = usa_total + ken_total + oth_total
+
+```
+
+## a: The marginal probability of a runner being Kenyan P(Kenya) and of being American P(USA).
+
+The marginal probability of a runner being Kenyan is `{r} round(ken_total / total,4)` (ken_total / total)
+
+The marginal probability of a runner being American is `{r} round(usa_total / total, 4)` (usa_total / total)
+
+## b: The joint probability of being Kenyan and ending up in the top 10 P(Kenya, Top10) and the joint probability of being Kenyan and ending up outside the top 10 P(Kenya, ~ top 10).
+
+The joint probability of being Kenyan and ending up in the top 10 P(Kenya ∩ Top10) is `{r} top_ken / total` (top_ken / total)
+
+The joint probability of being Kenyan and ending up outside the top 10 P(Kenya ∩ ~ Top10) is `{r} ntop_ken / total` (ntop_ken / total)
+
+## c: Calculate the conditional probability of being in the top 10 given that a runner is Kenyan P(top10 | Kenya) and the conditional probability of being Kenyan given that a runner is in the top 10 P(Kenya | top10).
+
+The conditional probability of being in the top 10 given that a runner is Kenyan P(top10 | Kenya) is `{r} top_ken / ken_total` (top_ken / ken_total)
+
+The conditional probability of being Kenyan given that a runner is in the top 10 P(Kenya | Top10) is `{r} top_ken / (top_ken + top_oth + top_usa)` (top_ken / top_all)
+
+## d. If you wanted to compare the performance of US and Kenyan runners using conditional probabilities, which one would you choose? Why?
+
+You should compare the performance of US and Kenyan runners using the conditional probability of being in the top 10 given that a runner is either American or Kenyan. This is the better comparison as it takes into account the relative count of Americans or Kenyans within the population of runners, as Kenyans have far fewer total runners therefore making a small number of top 10 winners much more impressive compared to the U.S. which has so many more runners.
+
+# Regression Review
+
+```{r}
+
+d <- read_rds("nyc_marathon.RDS")
+
+```
+
+## a. Plot the finishing times in seconds as a histogram. Describe the shape of this distribution. Is there anything weird about it?
+
+```{r} 
+
+ggplot(data = d,
+       aes(x = time_seconds)) +
+  geom_histogram(color = "white") +
+  labs(x = "Finishing Time (Seconds)",
+       y = "Count")
+
+```
+
+The shape of this histogram is bell-shaped (unimodal, mostly symmetrical). There is a very slight right skew. There is one irregularity, which is a bin far away from the rest due to a group with abnormally high finishing times (maximum finishing time of `{r} max(d$time_second)`) which are far removed from most of the data.
+
+## b. Now take a simple random sample of 500 runners and plot the relationship between finishing time and age on the sample.
+
+```{r}
+
+s <- slice_sample(.data = d,
+                  n = 500,
+                  replace = FALSE)
+
+ggplot(data = s,
+       aes(x = age,
+           y = time_seconds)) +
+  geom_point() + 
+  labs(x = "Age",
+       y = "Finishing Time (Seconds)") + 
+  geom_smooth(method = "lm")
+
+```
+
+## c. Using the same sample, do a linear regression to predict finishing time using age. What does the coefficient for age tell you? And the intercept?
+
+```{r} 
+
+lin <- lm(data = s, formula = time_seconds ~ age)
+
+summary(lin)
+
+```
+
+The coefficient for age indicates that for every increase in age (by 1 year), we can expect an increase in the finishing time (in seconds) of `{r} round(lin$coefficients[2],2)`. The intercept indicates that for an individual of age 0, we can expect a finishing time (in seconds) of `{r} round(lin$coefficients[1],2)`.
+
+## d. Using the same regression, predict the finishing time (in minutes) for a runner who is: 5, 20, 50 and 110 years old.
+
+5: `{r} round(lin$coefficients[1] + lin$coefficients[2]*5,2)`
+
+20: `{r} round(lin$coefficients[1] + lin$coefficients[2]*20,2)`
+
+50: `{r} round(lin$coefficients[1] + lin$coefficients[2]*50,2)`
+
+110: `{r} round(lin$coefficients[1] + lin$coefficients[2]*110,2)`
+
+## e. Do the same regression, but this time using the data for all the runners. Plot the two regressions as lines in the same plot and compare them. Under what conditions will they become more similar?
+
+```{r}
+
+p_lin <- lm(data = d, formula = time_seconds ~ age)
+
+summary(p_lin)
+
+ggplot() +
+  geom_point(data = d,
+       aes(x = age,
+           y = time_seconds),
+       alpha = .1) + 
+  labs(x = "Age",
+       y = "Finishing Time (Seconds)") + 
+  geom_smooth(method = "lm",
+              SE = FALSE,
+              aes(col = 'Population Regression',
+                  x = age,
+                  y = time_seconds), 
+              data = d) + 
+  geom_smooth(method = "lm",
+              SE = FALSE,
+              aes(col = 'Sample Regression',
+                  x = age,
+                  y = time_seconds), 
+              data = s)
+
+```
+
+The lines will generally be more similar given a greater sample size.
+
+## f. Take repeated samples of size 500 (at least 1000 samples). For each sample, run the same regression and extract the coefficient for age. Plot the distribution of coefficients and compare it to the age coefficient in the whole sample, what do you observe?
+
+```{r}
+
+draw_sample <- function(d = d, n = 500) {
+  samp <- slice_sample(.data = d,
+                       n = n,
+                       replace = FALSE)
+  samp_lin <- lm(data = samp, formula = time_seconds ~ age)
+  samp_lin$coefficients[2]
+}
+
+samples <- tibble(sample_id = 1:10000) |> 
+  rowwise() |> 
+  mutate(age_coefficient = draw_sample(d = d, n = 500))
+
+```
+
+```{r}
+
+ggplot(data = samples,
+       aes(x = age_coefficient)) +
+  geom_histogram(color = "white") +
+  labs(x = "Age Coefficient",
+       y = "Count") + 
+  geom_vline(xintercept = p_lin$coefficients[2],
+             color = "red")
+
+```
+
+The age coefficient for the population regression `{r} round(p_lin$coefficients[2],2)` (marked with the red line) is roughly the same as the mean age coefficient for the regressions performed on the samples `{r} round(mean(samples$age_coefficient),2)`. The age coefficients appear normally distributed around that mean.
