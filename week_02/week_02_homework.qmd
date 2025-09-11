@@ -1,0 +1,243 @@
+---
+title: "Week 2 HW - RQs and Estimands"
+format: 
+  html:
+    embed-resources: true
+editor: visual
+
+author: "David Gonzalez Chavez"
+
+execute:
+  echo: true
+  warning: false
+  message: false
+  freeze: auto
+---
+
+```{r}
+#| echo: false
+#| message: false
+#| warning: false
+
+library(tidyverse)
+
+theme_set(theme_light())
+
+set.seed(111)
+
+options(scipen=7)
+
+```
+
+# Question 1
+
+## Simulation
+
+The setting for our hypothetical study is a class in which students take two quizzes. After quiz 1
+but before quiz 2, the instructor randomly assigns half the class to attend an extra tutoring session.
+The other half of the class does not receive any additional help. Consider the half of the class that
+receives tutoring as the treated group. The goal is to estimate the effect of the extra tutoring
+session on average test scores for quiz 1.
+
+```{r}
+
+d <- tibble(row_id = 1:100) |> 
+  rowwise() |> 
+  mutate(q1 = rnorm(1, 65, 3)) |> 
+  mutate(y0 = 10 + (1.1 * q1) + rnorm(1, 0, 1),
+         y1 = 10 + (1.1 * q1) + 5 + rnorm(1, 0, 1)) |> 
+  ungroup()
+
+treated_d <- d |> # to randomly select 50, instead of using rbinom to pick (which wouldn't be exact), pulling a random sample of 50 to treat is simplepst
+  slice_sample(n = 50, replace = FALSE) |> 
+  select(row_id) |> 
+  mutate(treated = 1)
+
+d <- d |>
+  full_join(treated_d, by = join_by(row_id)) |> 
+  replace_na(list(treated = 0)) |> 
+  mutate(q2 = (y0 * (1 - treated)) + (y1 * treated))
+
+```
+
+# Question 2
+
+## A) What is your interpretation of δ?
+
+δ is the average treatment effect. In plain words, this ATE of 5 indicates that (on average), a student who receives the treatment (an extra tutoring session) will receive a quiz 2 score that is 5 points higher than if they had not received the treatment.
+
+## B)  How would you interpret the intercept for Y0 and Y1?
+
+The intercept for Y0 and Y1, β0, indicates that for a student who received a score of 0 on the first quiz, we can expect that they would receive a score of 10 on the second quiz (ignoring error and δ). 
+
+## C) How would you interpret β1?
+
+β1 indicates that for every point scored on the first quiz, we can expect that one would receive 1.1 more points on the second quiz. For instance, a score of 50 on quiz one would add an extra 55 points to the second quiz (in addition to β0, δ if treated, and error).
+
+# Question 3: Effect of Tutoring Session on Student Performance
+
+```{r}
+crosstab <- d |> group_by(treated) |> summarize(q2 = mean(q2), n = n())
+
+crosstab
+
+```
+
+## A) Calculate the true sample average treatment effect (SATE) using potential outcomes and compare it to δ. Are they different?
+
+```{r}
+
+d <- d |> 
+  mutate(te = y1 - y0) 
+
+true_SATE <- mean(d$te)
+
+```
+
+The true sample average treatment effect, calculated by taking an average of the difference between Y1 and Y0 for all individuals, is `{r} true_SATE`. This is very close to δ (5), but it is not exactly the same; this is expected  due to the error terms which introduce random error causing the difference between y0 and y1 to not be based solely on δ.
+
+## B) Using a difference in means in the observed outcome, estimate the sample average treatment effect SATE_hat and compare it to the true SATE and δ. Are they different? Why?
+
+```{r} 
+
+treated_q2 <- d |> 
+  filter(treated == 1) |> 
+  group_by(treated) |> 
+  summarize(mean = mean(q2))
+
+treated_q2 <- treated_q2$mean
+
+untreated_q2 <- d |> 
+  filter(treated == 0) |> 
+  group_by(treated) |> 
+  summarize(mean = mean(q2))
+
+untreated_q2 <- untreated_q2$mean
+
+SATE_hat <- treated_q2 - untreated_q2
+
+```
+
+The estimated SATE is `{r} SATE_hat`, which is different from the true SATE of `{r} true_SATE` and δ (5). These differences are due to random elements in the simulation: the error terms in calculating Y0 and Y1, and randomness in selecting the students who are treated. The former introduces random variation in scores that isn't based solely on selection into treatment. The latter introduces random variation in who is selected for treatment, and since they themselves have scores that are impacted by random error who is selected has an impact on the calculated estimated SATE.
+
+## C) Repeat the treatment assignment 500 times, each time calculating the new SATE_hat. Plot the distribution for SATE_hat. What is the mean and standard deviation of this distribution?
+
+```{r}
+
+draw_sample <- function(d = d, n = 50) {
+  d <- d |> 
+    select(row_id, q1, y0, y1)
+  
+  treated_samp <- d |> 
+    slice_sample(n = n, replace = FALSE) |>
+    select(row_id) |>
+    mutate(treated = 1)
+  
+  sample_d <- d |>
+    full_join(treated_samp, by = join_by(row_id)) |>
+    replace_na(list(treated = 0)) |>
+    mutate(q2 = (y0 * (1 - treated)) + (y1 * treated))
+  
+  s_treated_q2 <- sample_d |> 
+  filter(treated == 1) |> 
+  group_by(treated) |> 
+  summarize(mean = mean(q2))
+
+  s_treated_q2 <- s_treated_q2$mean
+  
+  s_untreated_q2 <- sample_d |> 
+    filter(treated == 0) |> 
+    group_by(treated) |> 
+    summarize(mean = mean(q2))
+  
+  s_untreated_q2 <- s_untreated_q2$mean
+  
+  s_SATE_hat <- s_treated_q2 - s_untreated_q2
+  
+  s_SATE_hat
+}
+
+samples_1 <- tibble(sample_id = 1:500) |>
+  rowwise() |> 
+  mutate(s_SATE_hat = draw_sample(d = d, n = 50))
+
+```
+
+```{r}
+
+ggplot(data = samples_1,
+       aes (x = s_SATE_hat)) + 
+  geom_histogram(binwidth = .1,
+                 color = "white") +
+  labs(x = "Sample SATE_Hat",
+       y = "Count")
+
+```
+
+The mean of this distribution is `{r} mean(samples_1$s_SATE_hat)`. The standard deviation of this distribution is `{r} sd(samples_1$s_SATE_hat)`
+
+## D) Using the data for the original experiment, estimate SATE_hat using two regressions, one including the quiz 1 scores and the other one without. Which estimate is closer to the true SATE?
+
+```{r}
+
+r1 <- lm(formula = q2 ~ treated, data = d)
+r2 <- lm (formula = q2 ~ treated + q1, data = d)
+
+summary(r1)
+summary(r2)
+
+```
+
+The first regression which does not include quiz 1 scores yields an SATE_hat of `{r} r1$coefficients[2]`.
+
+The second regression which does include quiz 1 scores yields an SATE_hat of `{r} r2$coefficients[2]`.
+
+The second estimate (adding quiz 1 scores to the model) yields an estimate closer to the true SATE. 
+
+Bonus: Q2 is influenced by both the Q1 score and the treatment effect. By accounting for the effect of Q1 score by adding it to the model, the estimated effect of treatment is isolated and is therefore more accurate.
+
+### E) Repeat the treatment assignment 500 times again, but this time estimate the SATE_hat using the regression with the quiz 1 score as a predictor. Plot the distribution and calculate the mean and standard deviation. Compare it to the distribution of SATE_hat you got using the difference in means. Which is a better method to estimate SATE?
+
+```{r}
+
+draw_sample_2 <- function(d = d, n = 50) {
+  d <- d |> 
+    select(row_id, q1, y0, y1)
+  
+  treated_samp <- d |> 
+    slice_sample(n = n, replace = FALSE) |>
+    select(row_id) |>
+    mutate(treated = 1)
+  
+  sample_d <- d |>
+    full_join(treated_samp, by = join_by(row_id)) |>
+    replace_na(list(treated = 0)) |>
+    mutate(q2 = (y0 * (1 - treated)) + (y1 * treated))
+  
+  r3 <- lm(formula = q2 ~ treated + q1, data = sample_d)
+  
+  r3$coefficients[2]
+}
+
+samples_2 <- tibble(sample_id = 1:500) |>
+  rowwise() |> 
+  mutate(s_SATE_hat = draw_sample_2(d = d, n = 50))
+
+```
+
+```{r}
+
+ggplot(data = samples_2,
+       aes (x = s_SATE_hat)) + 
+  geom_histogram(binwidth = .1,
+                 color = "white") +
+  labs(x = "Sample SATE_Hat",
+       y = "Count")
+
+```
+
+The mean of this distribution is `{r} mean(samples_2$s_SATE_hat)`. The standard deviation of this distribution is `{r} sd(samples_2$s_SATE_hat)`.
+
+The mean of the distribution based on the difference in means is `{r} mean(samples_1$s_SATE_hat)`. The standard deviation of that distribution is `{r} sd(samples_1$s_SATE_hat)`
+
+The better method to estimate SATE is the former method, i.e. using a regression considering treatment and Q1 as predictors.

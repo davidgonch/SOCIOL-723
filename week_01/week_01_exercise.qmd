@@ -79,7 +79,7 @@ The lagged impact of interest rate changes has been studied, but no connection i
 
 ### National Center for Science and Engineering Statistics
 
-The National Center for Science and Engineering Statistics has lots of datasets with survey data about company R&D spend, from businesses with only 1 to 9 employees to large businesses. 
+The National Center for Science and Engineering Statistics has lots of datasets with survey data about company R&D spend, from businesses with only 1 to 9 employees to large businesses.
 
 This includes the Business Enterprise Research and Development Survey (BERD) and the Annual Business Survey (ABS)
 

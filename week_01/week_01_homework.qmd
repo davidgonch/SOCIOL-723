@@ -29,12 +29,9 @@ options(scipen=7)
 
 ```
 
-
 # Problem Set
 
-Probability review. The table presents the joint distribution for two variables: country of
-origin and whether a runner ended up in the top 10. Compute the following (don’t just show
-the final result, show how you arrived at it):
+Probability review. The table presents the joint distribution for two variables: country of origin and whether a runner ended up in the top 10. Compute the following (don’t just show the final result, show how you arrived at it):
 
 ```{r}
 top_usa = 3
@@ -58,17 +55,17 @@ The marginal probability of a runner being Kenyan is `{r} round(ken_total / tota
 
 The marginal probability of a runner being American is `{r} round(usa_total / total, 4)` (usa_total / total)
 
-## b: The joint probability of being Kenyan and ending up in the top 10 P(Kenya, Top10) and the joint probability of being Kenyan and ending up outside the top 10 P(Kenya, ~ top 10).
+## b: The joint probability of being Kenyan and ending up in the top 10 P(Kenya, Top10) and the joint probability of being Kenyan and ending up outside the top 10 P(Kenya, \~ top 10).
 
 The joint probability of being Kenyan and ending up in the top 10 P(Kenya ∩ Top10) is `{r} top_ken / total` (top_ken / total)
 
-The joint probability of being Kenyan and ending up outside the top 10 P(Kenya ∩ ~ Top10) is `{r} ntop_ken / total` (ntop_ken / total)
+The joint probability of being Kenyan and ending up outside the top 10 P(Kenya ∩ \~ Top10) is `{r} ntop_ken / total` (ntop_ken / total)
 
-## c: Calculate the conditional probability of being in the top 10 given that a runner is Kenyan P(top10 | Kenya) and the conditional probability of being Kenyan given that a runner is in the top 10 P(Kenya | top10).
+## c: Calculate the conditional probability of being in the top 10 given that a runner is Kenyan P(top10 \| Kenya) and the conditional probability of being Kenyan given that a runner is in the top 10 P(Kenya \| top10).
 
-The conditional probability of being in the top 10 given that a runner is Kenyan P(top10 | Kenya) is `{r} top_ken / ken_total` (top_ken / ken_total)
+The conditional probability of being in the top 10 given that a runner is Kenyan P(top10 \| Kenya) is `{r} top_ken / ken_total` (top_ken / ken_total)
 
-The conditional probability of being Kenyan given that a runner is in the top 10 P(Kenya | Top10) is `{r} top_ken / (top_ken + top_oth + top_usa)` (top_ken / top_all)
+The conditional probability of being Kenyan given that a runner is in the top 10 P(Kenya \| Top10) is `{r} top_ken / (top_ken + top_oth + top_usa)` (top_ken / top_all)
 
 ## d. If you wanted to compare the performance of US and Kenyan runners using conditional probabilities, which one would you choose? Why?
 
@@ -84,7 +81,7 @@ d <- read_rds("nyc_marathon.RDS")
 
 ## a. Plot the finishing times in seconds as a histogram. Describe the shape of this distribution. Is there anything weird about it?
 
-```{r} 
+```{r}
 
 ggplot(data = d,
        aes(x = time_seconds)) +
@@ -116,7 +113,7 @@ ggplot(data = s,
 
 ## c. Using the same sample, do a linear regression to predict finishing time using age. What does the coefficient for age tell you? And the intercept?
 
-```{r} 
+```{r}
 
 lin <- lm(data = s, formula = time_seconds ~ age)
 
