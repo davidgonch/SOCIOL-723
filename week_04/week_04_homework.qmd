@@ -1,0 +1,299 @@
+---
+title: "HW #3 - Matching and Weighting"
+format: 
+  html:
+    embed-resources: true
+editor: visual
+
+author: "David Gonzalez Chavez"
+
+execute:
+  echo: true
+  warning: false
+  message: false
+  freeze: auto
+---
+
+```{r}
+#| echo: false
+#| message: false
+#| warning: false
+
+library(tidyverse)
+library(haven)
+library(MatchIt)
+library(cobalt)
+
+theme_set(theme_light())
+
+set.seed(111)
+
+options(scipen=7)
+
+```
+
+# Problem Set Part 1
+
+## 1
+
+You want to know whether practicing cursive improves your penmanship (on a 1–10 scale). You find that, among people who don’t practice cursive, average penmanship is 5, 10 people are left-handed, 2 are ambidextrous, and 88 are right-handed. Among people who do practice cursive, 6 are left-handed with average penmanship 7, 4 are ambidextrous with average penmanship 4, and 90 are right-handed with average penmanship 6.
+
+### a) You want to create a set of weights that will make the treated group match the control group on handedness. Follow the process in section 4.2, paying attention to why certain numbers are going in certain positions. What weights will be given to the left, ambidextrous, and right-handed people in the control group?
+
+The process in section 14.2 is for an involves giving a weight of 1 to everyone who is treated and assigning weights to the control group based on the proportion of characteristics in the treated group. This is effectively a way to assign weights for an ATT.
+
+For this assignment, however, I believe you're asking us to determine weights to find ATC (question C's listed answers only work for ATC weights), i.e. having the treated group match the control. Because of this, I set the weights for the controls to all be 1 since we want the treated group to match the control group.
+
+Left-Handed: 1
+Ambidextrous: 1
+Right-Handed: 1
+
+### b) What weights will be given to the left, ambidextrous, and right-handed people in the treated group?
+
+Here, to calculate the weights for the ATE I'd divide the count of people in each control group by the count of people in the corresponding treatment group.
+
+Left-Handed: 10 / 6, or `{r} 10/6`
+
+Ambidextrous: 2 / 4, or `{r} 2/4`
+
+Right-Handed: 88 / 90, or `{r} 88/90`
+
+### c) Use the weights from part (b) to calculate the proportion of left-handed people in the treated group, as well as the proportion of ambidextrous people and the proportion of right-handed people. If you don’t get 10%, 2%, and 88% (or very close with some rounding error), your weights are wrong; try again.
+
+The weighted proportion of ambidextrous and left- & right-handed people in the treated group can be calculated using the weights above.
+
+Left-Handed: 6 * (10 / 6), or `{r} 6 * (10 / 6)`%
+
+Ambidextrous: 4 * (2 / 4), or `{r} 4 * (2 / 4)`%
+
+Right-Handed: 90 * (88 / 90), or `{r} 90 * (88 / 90)`%
+
+### d) What is the weighted average penmanship score in the treated group?
+
+The weighted average penmanship score in the treated group can be calculated by multiplying the value for each treated group by its proportion above, then summing the totals.
+
+Left-Handed: 7 * .1, or `{r} 7 * ((6 * (10 / 6))/100)`
+
+Ambidextrous: 4 * .02, or `{r} 4 * ((4 * (2 / 4))/100)`
+
+Right-Handed: 6 * .88, or `{r} 6 * ((90 * (88 / 90))/100)`
+
+Summing these gives a weighted average of `{r} 7 * ((6 * (10 / 6))/100) + 4 * ((4 * (2 / 4))/100) + 6 * ((90 * (88 / 90))/100)`
+
+## 2
+
+For each of the following decisions to be made in the process of matching, determine which
+option produces more bias and try to explain why (in each case, the other option will produce
+more variance):
+
+### a) (A) selecting one control match for each treatment vs. (B) selecting multiple control matches for each treatment
+
+B yields more bias while A yields more  variance. This is because allowing multiple control matches for a treatment (B) reduces variance as having greater matches leads to a less noisy estimate, but it increases bias as the quality of extra matches may not be as strong; this is less of an issue with larger control groups, but for smaller control groups there is a greater risk of introducing more bias for B.
+
+### b) (A) using a relatively wide bandwidth vs. (B) using a narrower bandwidth
+
+A yields greater bias while B yields greater variance. This is because using a wider bandwidth results in poorer matches, increasing bias; at the same time, having more matches due to the wider bandwidth incrases your N, thus reducing variance.
+
+### c) (A) selecting matches with replacement vs. (B) selecting matches without replacement
+
+B yields greater bias while A yields greater variance. Selecting matches without replacement (B) yields lower variance compared to with replacement as a control unit can only be used once in matching, yielding a greater N and lower variance; on the other hand, the bias is greater as each treated observation may not get to use the best match since that match could have already been used.
+
+### d) (A) selecting one control match for each treatment vs. (B) applying a weight that accepts many controls but decays with distance
+
+B yields greater bias while A yields greater variance. This is because the strategy allows multiple matches of varying quality for each treatment rather than only the best match (as in A), introducing more bias; this does lower variance, however, as your N can be larger.
+
+## 3. Why should exact matching (or coarsened exact matching) generally be reserved for very large samples or situations where a very small number of matching variables is appropriate?
+
+Very large samples ensure that each treatment has a greater likelihood of having an exact match in the control group. For smaller samples, this likelihood is worse since you're selecting from a smaller pool of controls for each treatment. As a result, exact matching is a better strategy with larger samples vs. smaller samples.
+
+In situations where a small number of matching variables is appropriate, exact matching can also be used. With fewer variables to match on, it's more likely that one will find an exact match; as the number of variables increase, the likelihood of finding an exact match decreases as a treatment has to match to a control based on a greater number of factors.
+
+## 4. Which of the following is a downside of propensity score matching compared to other methods of matching?
+
+A) Propensity score matching cannot be combined with exact matching. Just because two propensity scores are identical, that does not mean that the underlying variables used to build that propensity score are the same. As a result, two individuals matched on exact propensity scores will not necessarily be exact matches.
+
+## 5
+
+You are planning to evaluate the effect of a tax-rebate plan for small businesses. Some businesses were eligible based on their tax returns and others weren’t. You would like to match on industry and number of employees. A table showing the number of businesses for each combination of industry and number of employees for the treated and untreated groups is below.
+
+### A) For what group of treated businesses would we say that the common-support assumption definitely fails?
+
+For retail employees with 1-5 employees.
+
+### B) There are no treated retail businesses with 11–20 employees. Is this a concern for the common support assumption if we are trying to estimate an average treatment on the treated?
+
+No, this is not a concern. Because we are interested in the ATT,  we simply can disregard retail business with 11-20 employees since there are no treated units meeting these criteria. If we wanted ATE or ATC, we would need to consider it.
+
+### C) What concern might we have about there only being one untreated service business with 11–20 employees?
+
+One issue with having only one untreated business for a category that has five treated is that the untreated business may not be an ideal match for all five treated businesses. Additionally, having such a small number of untreated businesses will increase variance. 
+
+### D) If we resolved the common support problem for the group from part (a) by dropping members of that group from the data, what problem would that create for our analysis?
+
+If we were to remove the treated retail businesses with 1-5 employees to resolve the common support problem, we would no longer be able to calculate a true ATT. Instead, we'd be calculating a modified ATT for only a specific type of treated business. We would not be able to make generalizable claims about all types of treated businesses.
+
+## 6: Explain why selecting untreated observations to match the treated observations produces an average treatment effect on the treated (ATT), while selecting treated observations to match the untreated observations produces an average treatment effect on the control (ATC).
+
+Selecting untreated observations to match the treated observations produces an ATT as we ensure that each treated observation is considered. If we were to match treated to untreated, some treated might not end up matched and we therefore would not include them in our analysis; this would prevent us understanding the true ATT, as our sample wouldn't include all treated units. Instead, we can match untreated to the treated and if any untreated end up unmatched, it is not an issue since we only care about effects on treated units.
+
+The inverse is true for ATC. We only care about the impact of changing treatment state for untreated observations, so we can match treated observations to untreated observations. If any treated end up unmatched it does not matter, so long as we find matches for all the untreated observations.
+
+# Problem Set Part 2: Coding
+
+## 1: Load the nsw mixtape data
+
+```{r}
+
+d <- read_rds("nsw_mixtape.rds") |> 
+  zap_labels()
+
+```
+
+## 2
+
+### a) First, create a variable called weight in your data equal to 1 for all observations (weights that are all 1 will have no effect, but this will give us a clue as to how we could incorporate matching weights easily).
+
+```{r}
+
+d <- d |> 
+  mutate(weight = 1)
+
+```
+
+### b) Second, write code that uses a set of given weights to estimate the effect of treat on re78, using weight as weights, and prints out a summary of the regression results.
+
+```{r}
+
+treat_effect <- function(weight) {
+  m1 <- lm(re78 ~ treat,
+           data = d,
+           weights = weight)
+  ## m1$coefficients[2] ## This would return only effect of treatment, but I'm commenting out to provide summary of regression results
+  summary(m1)
+}
+
+## An example of how to use this function
+
+treat_effect(d$weight)
+
+```
+
+### c) Third, write code yourself (as we did in the lab) that creates and prints out a weighted balance table for all variables across values of treat, using weight as weights (hint: you can use the weighted.mean() function for this).
+
+```{r}
+
+balance_table <- d |> 
+  select(-data_id) |> 
+  pivot_longer(cols = 2:10, names_to = "Variable", values_to = "Value") |> 
+  group_by(treat, Variable) |> 
+  summarize(w_mean = weighted.mean(Value, weight),
+            sd = sd(Value)) |> 
+  pivot_wider(names_from = treat, values_from = c(w_mean, sd)) |> 
+  mutate(std_meandiff = abs((w_mean_0 - w_mean_1) / (((sd_0^2 + sd_0^2)/2)^.5))) ## standardized mean diff is difference in means divided by pooled standard deviation, which is sqrt((sd0^2 + sd1^2) /2)
+
+balance_table
+
+```
+
+### d) Is there anything potentially concerning about the balance table, given that this is a randomized experiment where treat was randomly assigned?
+
+Assuming we want the standardized mean difference to be under .1, many of the variable exhibit very poor balance. The most unbalanced is nodegree, with the treated group having a far higher proportion of individuals with no degrees compared to the untreated group. Education and being hispanic are also unbalanced. 
+
+This might suggest that random assignment was compromised, as the characteristics of treated and untreated groups appear substantially different.
+
+## 3. Mahalanobis distance matching
+
+### a)
+
+As a note, the data in question comes from an experiment where the treatment was assigned after 1975. As a result, earnings in 74/75 are pre-treatment while earnings in 78 are the DV.
+
+```{r}
+
+m_matched <- matchit(treat ~ age + educ + black + hisp + marr + nodegree + re74 + re75,
+                     data = d,
+                     distance = "mahalanobis", #use mahalanobis
+                     replace = TRUE, # with replacement
+                     ratio = 3) # 3 
+
+```
+
+### b) Create a post-matching balance table and a love plot showing balance for all the matching variables (you can use functions from the Matchit and Cobalt packages to do this or you can write your own). Explain whether the balance looks good.
+
+```{r}
+
+bal.tab(m_matched)
+
+love.plot(m_matched,
+          binary = "std",
+          continuous = "std" ,
+          abs = TRUE ,
+          stats = "m",
+          var.order = "adj",
+          thresholds = .10)
+
+```
+re75, age, and re74 appear unbalanced. The rest of the variables are balanced.
+
+### Calculate the post-matching average treatment on the treated effect of treat on re78
+
+```{r}
+
+m2 <- lm(re78 ~ treat,
+         data = d,
+         weights = m_matched$weights)
+
+```
+
+The post-matching average treatment effect on the treated for re78 is `{r} m2$coefficients[2]`. This means that treatment increases earnings in 1978 by that amount.
+
+## 4. Propensity Score Matching
+
+### a) Use the same matching variables as in Question 3 to estimate the propensity to be treated (with a logit regression), and then add the treatment propensity to the data set as a new variable called propensity.
+
+```{r}
+
+m3 <- glm(treat ~ age + educ + black + hisp + marr + nodegree + re74 + re75,
+          data = d,
+          family = "binomial")
+
+d <- d |> 
+  mutate(propensity = predict(m3, type = "response"))
+
+```
+
+### b) Create a new variable in the data called ipw with the inverse probability weight.
+
+```{r}
+
+d <- d |> 
+  mutate(ipw = if_else(treat == 1, 1, propensity / (1 - propensity))) ## att, so weight is 1 for treated 
+
+```
+
+### c) Make a common support graph, overlaying the propensity for treated observations ontop of the propensity for untreated observations. Write a line commenting on how the common support looks.
+
+```{r}
+
+ggplot(aes(x = propensity,
+           color = factor(treat)),
+       data = d) + 
+  geom_density() + 
+  labs(x = "Propensity Score",
+       y = "Density",
+       color = "Treated")
+
+```
+
+Overall, the common support looks good. There don't appear to be any regions where there are far more treated individuals than nontreated individuals; the biggest delta is around the PS of 0.5, but that is not as important as the areas with the most concentration of treated individuals (around .37, .55) where there is substantial overlap between treated and non treated groups.
+
+### d) Estimate the treatment effect using the ipw weights in a linear regression (keeping in mind the standard errors won’t be quite right). 
+
+```{r}
+
+m4 <- lm(re78 ~ treat,
+         data = d,
+         weights = ipw)
+
+```
+
+The estimated treatment effect using the ipw weights in a linear regression is `{r} m4$coefficients[2]`.
