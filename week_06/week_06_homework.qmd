@@ -1,0 +1,269 @@
+---
+title: "HW #4 - Multiple Regression"
+format: 
+  html:
+    embed-resources: true
+editor: visual
+
+author: "David Gonzalez Chavez"
+
+execute:
+  echo: true
+  warning: false
+  message: false
+  freeze: auto
+---
+
+```{r}
+#| echo: false
+#| message: false
+#| warning: false
+
+library(tidyverse)
+
+library(MatchIt)
+
+
+theme_set(theme_light())
+
+set.seed(111)
+
+options(scipen=7)
+
+```
+
+# Problem Set Part 1
+
+## Question 1
+
+### a) What is the error for Observation A?
+
+The error for Observation A is `{r} 9 - 2 - (3*2)`.
+
+### b) What is the residual for Observation A?
+
+The residual for Observation A is `{r} 9-(1.9+(3.1*2))`.
+
+## Question 2
+
+Top-Left: Y ~ X + D
+Top-Right: Y ~ X + D
+Bottom-Left: Y ~ X
+Bottom-Right: Not possible
+
+## Question 3
+
+### a) How many additional hours worked is associated with a one-unit increase of years of education when controlling for number of children?
+
+76.185 hours
+
+### b) What is the standard error on the “children under 5” coefficient when not controlling for years of education?
+
+19.693 hours
+
+### c) In the third model, what is the predicted number of hours worked for a woman with zero children and zero years of education?
+
+306.553 hours
+
+### d)  In the second model, how many hours worked would the model predict for a woman with 2 children and 10 years of education?
+
+`{r} 1256.671 - (238.853 * 2)` hours
+
+### e) In models 2 and 3, is the coefficient on children under 5 “statistically significantly” different from 0 at the 95% level? How many standard deviations away from 0 are they? And how do we call this statistic?
+
+Yes, the coefficients on both are "statistically significant".
+
+For model 2, the coefficient is `{r} (238.853/19.693)` standard deviations away from 0, which is well beyond the 1.96 threshold for 95% confidence.
+
+For model 3, the coefficient is `{r} (251.181/19.28)` standard deviations away from 0, which is well beyond the 1.96 threshold for 95% confidence.
+
+This statistic is called the z-score.
+
+## Question 4
+
+### a) What is the relationship between a one-year increase in education and the number of annual hours worked?
+
+A one-year increase in education (from zero years of education) is associated with an increase of `{r} 110.230*1 - 1.581*(1^2)` annual hours worked.
+
+### b) What is the relationship between a one-year increase in education and annual hours worked if the current level of education is 16?
+
+A one-year increase in education is associated with an increase of `{r} (110.230*17 - 1.581*(17^2)) - (110.230*16 - 1.581*(16^2))` annual hours worked.
+
+### c) Is the relationship between education and hours worked getting more or less positive for higher values of education?
+
+The relationship between education and hours worked is getting less positive for higher values of education.
+
+### d) What would be one reason not to include a whole bunch of additional powers of education in this model (Edu3, Edu4, and so on)?
+
+Adding additional powers of education might lead to overfitting, where the data fits the sample too well but wouldn't generalize well.
+
+## Question 5
+
+### a) Interpret the coefficient on “Homeowner”. Is this coefficient “statistically significantly” different from 0 at the 95% level?
+
+The z-statistic for Homeowner is `{r} 50.174/(32.923)` which is below the 1.96 threshold for 95% confidence, therefore this coefficient is not "statistically significant."
+
+### b) According to the model, how many fewer hours do people with 4 children under the age of 5 work than people with 3 children under the age of 5?
+
+People with 4 children under 5 work `{r} 923.904 - 773.412` hours less than those with only 3.
+
+### c) From this table alone can we tell whether there’s a “statistically significant” difference in hours worked between having 2 children and having 3? How could we test that?
+
+Yes, by constructing two 95% confidence intervals for the effect of 2 and 3 children.
+
+The 95% confidence interval for 2 children under 5 is `{r} -526.006 - (50.779*2)` to `{r} -526.006 + (50.779*2)`.
+
+The 95% confidence interval for 3 children under 5 is `{r} -773.412 - (113.394*1.96)` to `{r} -773.412 + (113.394*1.96)`.
+
+Because these confidence intervals overlap, there is not a "statistically significant" difference between the effect of having 2 vs. 3 children.
+
+## Question 6
+
+### a)  In Model 1, what is the relationship between a one-unit increase in Education and annual hours worked?
+
+A one-unit increase in education has difference effects for homeowners and non-homeowners.
+
+For non-homeowners, the effect is 110.073 hours.
+
+For homeowners, the effect is `{r} 110.073-53.994` hours.
+
+### b) Interpret the coefficient on Homeowner × Education in Model 1
+
+For homeowners, the effect of education is weaker than for non-homeowners. Instead of an effect of 110.073 for non-homeowners, homeowners have an effect of 110.073 - 53.994 (53.994 being the coefficient on Homeowner X Education).
+
+### c) Interpret the coefficient on Education in Model 2. Note that the dependent variable is log(Annual Hours Worked).
+
+For a non-homeowner, an increase of 1 year in education results in an increase in annual hours worked of `{r} exp(.067) - 1`%
+
+### d) Interpret the coefficient on log(Education) in Model 3 using percentage change in education.
+
+A 1% change in education is associated with an increase of `{r} 832.347/100` hours worked.
+
+### e) Why do you think the sample size is different in model 2?
+
+The sample size is different in model 2 as the DV is the log of hours worked, and for anyone with 0 hours worked the log wouldn't be possible and therefore they would be taken out of the sample.
+
+## Question 7
+
+b) When error terms are correlated across time, such that knowing the error term in one period gives
+us some information about the error term in the next period.
+
+## Question 8
+
+b, c, e
+
+## Question 9
+
+They can use sample weights. They should determine the proportion of each demographic in the population, and weight individuals within their sample up/down to reach a weighted proportion equal to the population for each demogrpahic.
+
+## Question 10
+
+a
+
+# Problem Set Part 2
+
+```{r}
+
+d <- read_csv("dengue.csv")
+
+```
+
+## 1: Run an OLS regression using average humidity and temperature to predict whether dengue was observed in the area, and plot a summary table of the results.
+
+```{r}
+
+m1 <- lm(NoYes ~ humid + temp,
+         data = d)
+
+summary(m1)
+
+```
+
+## 2: Our dependent variable is binary, and we’re getting predictions below zero, which we might not want. Rerun the regression from the previous question but as a logit model, report and interpret the marginal effects of both slope coefficients.
+
+```{r}
+
+m2 <- glm(NoYes ~ humid + temp,
+         data = d,
+         family = "binomial")
+
+summary(m2)
+
+```
+
+An increase of 1 point of humidity is associated with an increase in the log odds of having dengue of 0.30474. An increase of 1 degree of temperature is associated with an increase in the log odds of having dengue of 0.03987.
+
+## 3: Now let’s say we’re directly interested in the relationship between temperature and humidity. Run an OLS regression of humidity on temperature. Calculate the residuals of that regression, and then make a plot that will let you evaluate whether there is likely heteroskedasticity in the model. Rerun the model with heteroskedasticity-robust standard errors. Show both models, and say whether you think there is heteroskedasticity. 
+
+Note: remove NAs for the variable humid on the data before running themodel so the residuals line up properly.
+
+```{r}
+library(sandwich)
+library(lmtest)
+
+d <- d |> 
+  drop_na(humid)
+
+m3 <- lm(humid ~ temp,
+        data = d)
+
+ggplot(aes(x = temp,
+           y = humid),
+       data = d) +
+  geom_point(alpha = .7) + 
+  geom_smooth(method = "lm") + 
+  labs(x = "Temperature",
+       y = "Humidity")
+
+```
+
+Regular Model
+
+```{r}
+
+summary(m3)
+
+```
+
+Heteroskedasticity-Robust Standard Errors
+
+```{r} 
+
+coeftest(m3, vcov. = vcovHC(m3, type = "HC0"))
+
+```
+
+I believe there is heteroskedasticity. The errors between 0 and 10 & 20 and 30 degrees appear far more tightly concentrated than those between 10-20.
+
+## 4: In the graph in the last problem you may have noticed that for certain ranges of temperate, the errors were clearly nonzero on average. This can indicate a functional form problem. Run the model from the previous question again (with heteroskedasticity-robust standard errors), but this time use the logarithm of humidity in place of humidity. Add a sentence interpreting the coefficient on temperature.
+
+```{r}
+
+m4 <- lm(log(humid) ~ temp,
+        data = d)
+
+ggplot(aes(x = temp,
+           y = log(humid)),
+       data = d) +
+  geom_point(alpha = .7) + 
+  geom_smooth(method = "lm") + 
+  labs(x = "Temperature",
+       y = "Log(Humidity)")
+
+```
+
+Heteroskedasticity-Robust Standard Errors
+
+```{r} 
+
+coeftest(m4, vcov. = vcovHC(m3, type = "HC0"))
+
+```
+
+For every increase in temperature of 1, the humidity increases by `{r} (exp(0.056482)-1)*100`%.
+
+## 5: Bonus question: figure out how I decided on a form where you log humidity and keep temperature linear.
+
+You could've done this by looking at the data, such as making a plot of the residuals.
+
+You could also have assumed this type of relationship from the real-world implications of increasing temperature on humidity. You could expect that at higher temperatures, the impact of increasing the temperature by one would have a greater impact on humidity as water would be much more likely to evaporate and thus enter the atsmophere to raise humidity compared to at a lower temperature, where such a small increase wouldn't bring water meaningfully closer to the point of evaporating.
