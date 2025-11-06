@@ -1,0 +1,268 @@
+---
+title: "HW #5 - Multilevel Models"
+format: 
+  html:
+    embed-resources: true
+editor: visual
+
+author: "David Gonzalez Chavez"
+
+execute:
+  echo: true
+  warning: false
+  message: false
+  freeze: auto
+---
+
+```{r}
+#| echo: false
+#| message: false
+#| warning: false
+
+library(tidyverse)
+library(lme4)
+
+theme_set(theme_light())
+
+set.seed(111)
+
+options(scipen=7)
+
+```
+
+# Preliminaries
+
+```{r}
+
+d <- read_rds("ess5000.rds")
+
+```
+
+## 1. Describe the data
+
+```{r}
+
+psych::describe(d)
+
+```
+
+The mean of ppltrst is `{r} mean(d$ppltrst)` and the variance of ppltrst is `{r} var(d$ppltrst)`.
+
+## 2. Histogram of ppltrst
+
+```{r}
+
+ggplot(aes(x = ppltrst),
+       data = d) +
+  geom_histogram(color = "white",
+                 binwidth = 1) + 
+  ylab("Count")
+
+```
+
+The modal value is 5, as the plurality of respondents answers 5.0 to the question.
+
+## 3. Distribution of ppltrust By Country
+
+```{r}
+
+ggplot(aes(x = ppltrst),
+       data = d) +
+  geom_histogram(color = "white",
+                 binwidth = 1) + 
+  ylab("Count") + 
+  facet_wrap(~ cntry)
+
+```
+
+For most countries there are very few datapoints. As a result, partial pooling will probably result in predicted country means for those countries with little information to shift to be closer to the overall pooled mean.
+
+# Single Dimension
+
+## 4. Variance Components Model
+
+```{r}
+
+m1 <- lmer(ppltrst ~ 1 + (1 | cntry),
+           data = d,
+           REML = FALSE)
+
+```
+
+summary(m1)
+
+## 5. Intraclass Correlation
+
+```{r}
+
+vc <- as.data.frame(VarCorr(m1)) # turn varcorr to a dataframe so I can pull relevant fields
+icc <- vc$vcov[1] / (vc$vcov[1] + vc$vcov[2]) # country variance divided by country variance + variance of residuals
+
+icc
+
+```
+
+## 6. Performance
+
+```{r}
+
+performance::icc(m1)
+
+```
+
+The ICC values are very similar between my calculation and the peformance package.
+
+## 7. Interpreting ICC
+
+The ICC value indicates that `{r} icc*100`% of the variation in ppltrst is between different countries, while the rest of the variance is within countries themselves.
+
+## 8. Comparing to Completely Pooled OLS
+
+```{r}
+
+m2 <- lm(ppltrst ~ 1,
+         data = d)
+
+summary(m2)
+
+anova(m1, m2)
+
+```
+
+The predictions from both models are very similar. The AIC & BIC is lower for the partially pooled model, however, indicating that the increased complexity of the model is outweighed by the stronger estimates it provides and therefore we should use the partially pooled model.
+
+## 9. Empirical Bayes Estimates
+
+```{r}
+
+d1 <- d |> 
+  mutate(p_mean = predict(m1, newdata = d)) |> 
+  group_by(cntry) |> 
+  summarize(mean = mean(ppltrst),
+            p_mean = mean(p_mean),
+            n = n())
+
+```
+
+Bulgaria has the lowest estimated trust at `{r} d1$p_mean[d1$cntry == "BG"]`. Denmark has the highest estimated trust at `{r} d1$p_mean[d1$cntry == "DK"]`.
+
+```{r}
+
+ggplot(aes(x = mean,
+           y = p_mean,
+           color = cntry),
+       data = d1) + 
+  geom_point(alpha = .7,
+             aes(size = n)) +
+  geom_abline(intercept = 0,
+              slope = 1) ## predicted mean will be close to mean for countries with more data. So a line with slope of 1 is the standard assuming predicted mean equals empirical mean.
+
+```
+
+My predictions were correct for question 3. The countries with more data (i.e., higher n in the plot) had predicted means closer to their empirical means. For those with smaller sample sizes, the means shifted more to be closer to the overall mean.
+
+# Two Dimensions
+
+## 10. Eduyrs Variable
+
+```{r}
+
+d2 <- d |> 
+  mutate(eduyrs01 = eduyrs / max(d$eduyrs)) ## eduyrs goes from 0 to 20 so this is appropriate to rescale
+
+m3 <- lmer(ppltrst ~ 1 + eduyrs01 + (1 | cntry),
+           data = d2,
+           REML = FALSE)
+
+```
+
+By adding the rescaled predictor eduyrs01 to the model, the model suggests that the effect of going from 0 education to the highest level of education in any country is an increase in ppltrst of `{r} summary(m3)$coefficients[2]`.
+
+## 11. Trust by Education Plot
+
+```{r}
+
+d3 <- d2 |> 
+  mutate(p_mean = predict(m3, newdata = d2)) |> 
+  group_by(cntry) |> 
+  summarize(mean_ppltrst = mean(ppltrst),
+            p_mean_ppltrst = mean(p_mean),
+            mean_eduyrs = mean(eduyrs01),
+            n = n())
+
+ggplot(aes(x = mean_eduyrs,
+           y = p_mean_ppltrst,
+           color = cntry),
+       data = d3) + 
+  geom_point(aes(size = n)) +
+  labs(x = "Average Years of Education",
+       y = "Averaged Predicted Trust")
+
+```
+
+## 12. Random Slope Model
+
+```{r}
+
+m4 <- lmer(ppltrst ~ 1 + eduyrs01 + (1 + eduyrs01 | cntry),
+           data = d2,
+           REML = FALSE)
+
+d4 <- d2 |> 
+  mutate(p_mean = predict(m3, newdata = d2)) |> 
+  group_by(cntry) |> 
+  summarize(mean_ppltrst = mean(ppltrst),
+            p_mean_ppltrst = mean(p_mean),
+            mean_eduyrs = mean(eduyrs01),
+            n = n())
+
+ggplot(aes(x = mean_eduyrs,
+           y = p_mean_ppltrst,
+           color = cntry),
+       data = d4) + 
+  geom_point(aes(size = n)) +
+  labs(x = "Average Years of Education",
+       y = "Averaged Predicted Trust")
+
+```
+
+## 13. Comparison of Models
+
+```{r}
+
+anova(m3, m4)
+
+```
+
+There is no meaningful improvement between the models with and without random slopes. As a result, we should pick the less complex model (the first model we tested), which has a lower AIC and BIC. 
+
+This suggests that the effect of education on trust is similar for each country, so we do not need to estimate different effects for each country.
+
+# Multivariate Model
+
+## Age on Trust
+
+```{r}
+
+d5 <- d2 |> 
+  mutate(agea01 = (agea - min(d2$agea)) / (max(d2$agea) - min(d2$agea)),
+         attend01 = (attend - min(d2$attend)) / (max(d2$attend) - min(d2$attend)),
+         health01 = (health - min(d2$health)) / (max(d2$health) - min(d2$health)))
+
+m5 <- lmer(ppltrst ~ 1 + agea01 + I(agea01^2) + attend01 + health01 + female + eduyrs01 + (1 | cntry),
+           data = d5,
+           REML = FALSE)
+
+d6 <- ggeffects::ggeffect(m5,
+         terms = "agea01") 
+
+ggplot(aes(x = x,
+           y = predicted),
+       data = d6) +
+  geom_line() + 
+  labs(x = "Age (0 = lowest, 1 = highest)",
+       y = "Predicted Trust")
+
+```
+
+The
