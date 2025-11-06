@@ -87,9 +87,9 @@ m1 <- lmer(ppltrst ~ 1 + (1 | cntry),
            data = d,
            REML = FALSE)
 
-```
-
 summary(m1)
+
+```
 
 ## 5. Intraclass Correlation
 
